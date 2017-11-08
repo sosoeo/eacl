@@ -101,6 +101,11 @@
   :type 'string
   :group 'eacl)
 
+(defcustom eacl-complete-line-max-length 512
+  "Max length of line completed by `eacl-complete-line'."
+  :type 'number
+  :group 'eacl)
+
 (defcustom eacl-project-root nil
   "Project root.  If it's nil project root is detected automatically."
   :type 'string
@@ -216,9 +221,17 @@ If REGEX is not nil, complete statement."
          (sep (if regex "\x0" "[\r\n]+"))
          (collection (split-string (shell-command-to-string cmd) sep t "[ \t\r\n]+"))
          (rlt t))
+    ;; remove the long lines Emacs has difficulties to handle.
+    (unless (or regex
+                (not eacl-complete-line-max-length)
+                (= eacl-complete-line-max-length 0))
+      (setq collection (delq nil (mapcar (lambda (e)
+                                           (if (<= (length e) eacl-complete-line-max-length) e))
+                                       collection))))
     ;; (message "keyword=%s" keyword)
     ;; (message "quoted keyword=%s" quoted-keyword)
-    ;; (message "cmd=%s collection length=%s sep=%s" cmd (length collection) sep)
+    ;; (message "cmd=%s" cmd)
+    ;; (message "collection length=%s sep=%s" (length collection) sep)
     (when collection
       (setq collection (delq nil (delete-dups collection)))
       (cond
