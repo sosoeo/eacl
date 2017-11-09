@@ -220,6 +220,7 @@ If REGEX is not nil, complete statement."
          ;; Please note grep's "-z" will output null character at the end of each candidate
          (sep (if regex "\x0" "[\r\n]+"))
          (collection (split-string (shell-command-to-string cmd) sep t "[ \t\r\n]+"))
+         one-match
          (rlt t))
     ;; remove the long lines Emacs has difficulties to handle.
     (unless (or regex
@@ -227,12 +228,14 @@ If REGEX is not nil, complete statement."
                 (= eacl-complete-line-max-length 0))
       (setq collection (delq nil (mapcar (lambda (e)
                                            (if (<= (length e) eacl-complete-line-max-length) e))
-                                       collection))))
+                                         collection))))
+    (setq one-match (= 1 (length collection)))
     ;; (message "keyword=%s" keyword)
     ;; (message "quoted keyword=%s" quoted-keyword)
     ;; (message "cmd=%s" cmd)
     ;; (message "collection length=%s sep=%s" (length collection) sep)
     (when collection
+      ;; remove duplicates
       (setq collection (delq nil (delete-dups collection)))
       (cond
        ((= 1 (length collection))
@@ -243,7 +246,6 @@ If REGEX is not nil, complete statement."
          (t
           (eacl-replace-text (car collection) start regex))))
        ((> (length collection) 1)
-        ;; uniq
         (when regex
           (setq collection (mapcar 'eacl-create-candidate-summary collection)))
         (ivy-read "candidates:"
@@ -272,10 +274,10 @@ If REGEX is not nil, complete statement."
         (setq continue nil))
       (cond
        (continue
-        (when (fboundp 'xref-pulse-momentarily)
-          (xref-pulse-momentarily))
         (when (yes-or-no-p "Continue?")
-          (setq keyword (eacl-encode (eacl-trim-left (buffer-substring-no-properties start (point)))))))
+          (setq keyword (eacl-encode (eacl-trim-left (buffer-substring-no-properties start (point))))))
+        (when (fboundp 'xref-pulse-momentarily)
+          (xref-pulse-momentarily)))
        (t
         (setq continue nil))))))
 
